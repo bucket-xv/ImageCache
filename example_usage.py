@@ -48,12 +48,9 @@ def simulate_docker_environment(duration=30, time_window=300, policy=EvictionPol
             container_id = f"container{container_counter}"
             image_id = random.choice(images)
 
-            # Generate a random usage time between 1 and 20 seconds
-            usage_time = random.randint(1, 20)
-
             print(
-                f"Creating container {container_id} using image {image_id} (usage time: {usage_time}s)")
-            cache.detect_build(image_id, container_id, usage_time=usage_time)
+                f"Creating container {container_id} using image {image_id}")
+            cache.detect_run(image_id, container_id)
             active_containers[container_id] = image_id
 
         elif action == "destroy" and active_containers:
@@ -63,7 +60,7 @@ def simulate_docker_environment(duration=30, time_window=300, policy=EvictionPol
 
             print(
                 f"Destroying container {container_id} (was using image {image_id})")
-            cache.detect_remove(image_id, container_id)
+            cache.detect_stop(image_id, container_id)
             del active_containers[container_id]
 
         elif action == "evict":

@@ -7,22 +7,22 @@ def test_basic_functionality():
     cache = DockerImageCache(time_window=60)  # 1 minute window for testing
 
     # Simulate some container builds
-    cache.detect_build("image1", "container1")
-    cache.detect_build("image1", "container2")
-    cache.detect_build("image2", "container3")
-    cache.detect_build("image3", "container4")
+    cache.detect_run("image1", "container1")
+    cache.detect_run("image1", "container2")
+    cache.detect_run("image2", "container3")
+    cache.detect_run("image3", "container4")
 
     # Check that no images are unused yet
     assert len(cache.get_unused_images()) == 0
 
     # Simulate removing some containers
-    cache.detect_remove("image1", "container1")
+    cache.detect_stop("image1", "container1")
 
     # image1 should still be in use by container2
     assert "image1" not in cache.get_unused_images()
 
     # Remove the last container using image1
-    cache.detect_remove("image1", "container2")
+    cache.detect_stop("image1", "container2")
 
     # Now image1 should be unused
     assert "image1" in cache.get_unused_images()
@@ -38,19 +38,19 @@ def test_time_window():
     cache = DockerImageCache(time_window=2)  # 2 second window for testing
 
     # Simulate some container builds
-    cache.detect_build("image1", "container1")
-    cache.detect_build("image2", "container2")
+    cache.detect_run("image1", "container1")
+    cache.detect_run("image2", "container2")
 
     # Wait for 1 second
     time.sleep(1)
 
     # Use image2 again
-    cache.detect_build("image2", "container3")
+    cache.detect_run("image2", "container3")
 
     # Remove all containers
-    cache.detect_remove("image1", "container1")
-    cache.detect_remove("image2", "container2")
-    cache.detect_remove("image2", "container3")
+    cache.detect_stop("image1", "container1")
+    cache.detect_stop("image2", "container2")
+    cache.detect_stop("image2", "container3")
 
     # Both images should be unused now
     assert "image1" in cache.get_unused_images()
@@ -77,22 +77,22 @@ def test_least_total_time_used_policy():
     )
 
     # Simulate some container builds with different usage times
-    cache.detect_build("image1", "container1", usage_time=10)  # 10 seconds
-    cache.detect_build("image2", "container2", usage_time=5)   # 5 seconds
-    cache.detect_build("image3", "container3", usage_time=15)  # 15 seconds
+    cache.detect_run("image1", "container1")
+    time.sleep(0.1)  # Simulate 0.1 seconds of usage
+    cache.detect_stop("image1", "container1")
 
-    # Check that no images are unused yet
-    assert len(cache.get_unused_images()) == 0
+    cache.detect_run("image2", "container2")
+    time.sleep(0.05)  # Simulate 0.05 seconds of usage
+    cache.detect_stop("image2", "container2")
 
-    # Simulate removing all containers
-    cache.detect_remove("image1", "container1")
-    cache.detect_remove("image2", "container2")
-    cache.detect_remove("image3", "container3")
+    cache.detect_run("image3", "container3")
+    time.sleep(0.15)  # Simulate 0.15 seconds of usage
+    cache.detect_stop("image3", "container3")
 
     # All images should be unused now
     assert len(cache.get_unused_images()) == 3
 
-    # The image with the least total usage time should be image2 (5 seconds)
+    # The image with the least total usage time should be image2 (0.05 seconds)
     evicted_image = cache.evict()
     assert evicted_image == "image2"
 
@@ -103,9 +103,9 @@ def test_least_total_time_used_policy():
     cache.image_total_usage_time.pop("image2")
 
     # Use image1 again with additional time
-    # Now image1 has 18 seconds total
-    cache.detect_build("image1", "container4", usage_time=8)
-    cache.detect_remove("image1", "container4")
+    cache.detect_run("image1", "container4")
+    time.sleep(0.08)  # Simulate 0.08 seconds of usage
+    cache.detect_stop("image1", "container4")
 
     # Debug: Print the total usage times for each image
     print(
@@ -115,7 +115,7 @@ def test_least_total_time_used_policy():
     print(f"DEBUG: Unused images: {cache.get_unused_images()}")
 
     # With LEAST_TOTAL_TIME_USED policy, image3 should be evicted next
-    # because it has less total time (15 seconds) than image1 (18 seconds)
+    # because it has less total time (0.15 seconds) than image1 (0.18 seconds)
     evicted_image = cache.evict()
     print(f"DEBUG: Evicted image: {evicted_image}")
     assert evicted_image == "image3"
@@ -141,26 +141,28 @@ def test_policy_override():
     )
 
     # Simulate some container builds with different usage patterns
-    # image1: Used once with 20 seconds
-    cache.detect_build("image1", "container1", usage_time=20)
+    # image1: Used once with 0.2 seconds
+    cache.detect_run("image1", "container1")
+    time.sleep(0.2)  # Simulate 0.2 seconds of usage
+    cache.detect_stop("image1", "container1")
 
-    # image2: Used twice with 5 seconds each (10 seconds total)
-    cache.detect_build("image2", "container2", usage_time=5)
-    cache.detect_build("image2", "container3", usage_time=5)
+    # image2: Used twice with 0.05 seconds each (0.1 seconds total)
+    cache.detect_run("image2", "container2")
+    time.sleep(0.05)  # Simulate 0.05 seconds of usage
+    cache.detect_stop("image2", "container2")
 
-    # Remove all containers
-    cache.detect_remove("image1", "container1")
-    cache.detect_remove("image2", "container2")
-    cache.detect_remove("image2", "container3")
+    cache.detect_run("image2", "container3")
+    time.sleep(0.05)  # Simulate 0.05 seconds of usage
+    cache.detect_stop("image2", "container3")
 
     # With LEAST_FREQUENTLY_USED policy, image1 should be evicted (used once vs twice)
     assert cache.evict() == "image1"
 
     # Add image1 back
-    cache.detect_build("image1", "container4", usage_time=0)
-    cache.detect_remove("image1", "container4")
+    cache.detect_run("image1", "container4")
+    cache.detect_stop("image1", "container4")
 
-    # With LEAST_TOTAL_TIME_USED policy, image2 should be evicted (10 seconds vs 20 seconds)
+    # With LEAST_TOTAL_TIME_USED policy, image2 should be evicted (0.1 seconds vs 0.2 seconds)
     assert cache.evict(policy=EvictionPolicy.LEAST_TOTAL_TIME_USED) == "image2"
 
     print("Policy override test passed!")

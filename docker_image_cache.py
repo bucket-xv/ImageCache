@@ -37,21 +37,22 @@ class DockerImageCache:
         # Map of image_id -> total usage time (in seconds)
         self.image_total_usage_time: Dict[str, float] = defaultdict(float)
 
+        # Map of (image_id, container_id) -> start timestamp
+        self.container_start_times: Dict[Tuple[str, str], float] = {}
+
         # Time window to consider for usage statistics (in seconds)
         self.time_window = time_window
 
         # Eviction policy to use
         self.policy = policy
 
-    def detect_build(self, image_id: str, container_id: str, usage_time: float = 0) -> None:
+    def detect_run(self, image_id: str, container_id: str) -> None:
         """
         Called when an image is used for a container.
 
         Args:
             image_id: The ID of the Docker image
             container_id: The ID of the container using the image
-            usage_time: The time spent using the image (in seconds, default: 0)
-                        If provided, this will be added to the total usage time for the image
         """
         # Record that this container is using this image
         self.image_containers[image_id].add(container_id)
@@ -60,11 +61,10 @@ class DockerImageCache:
         current_time = time.time()
         self.image_usage_history[image_id].append(current_time)
 
-        # Add usage time to total usage time
-        if usage_time > 0:
-            self.image_total_usage_time[image_id] += usage_time
+        # Store the start time for this container/image pair
+        self.container_start_times[(image_id, container_id)] = current_time
 
-    def detect_remove(self, image_id: str, container_id: str) -> None:
+    def detect_stop(self, image_id: str, container_id: str) -> None:
         """
         Called when an image is no longer used for a container.
 
@@ -72,6 +72,18 @@ class DockerImageCache:
             image_id: The ID of the Docker image
             container_id: The ID of the container that was using the image
         """
+        # Calculate usage time if we have a start time for this container/image pair
+        if (image_id, container_id) in self.container_start_times:
+            start_time = self.container_start_times[(image_id, container_id)]
+            end_time = time.time()
+            usage_time = end_time - start_time
+
+            # Add the calculated usage time to the total for this image
+            self.image_total_usage_time[image_id] += usage_time
+
+            # Remove the start time entry
+            del self.container_start_times[(image_id, container_id)]
+
         # Remove this container from the set of containers using this image
         if image_id in self.image_containers and container_id in self.image_containers[image_id]:
             self.image_containers[image_id].remove(container_id)
@@ -122,6 +134,7 @@ class DockerImageCache:
         Returns:
             The total time the image has been used (in seconds)
         """
+
         return self.image_total_usage_time.get(image_id, 0)
 
     def evict(self, policy: Optional[EvictionPolicy] = None) -> Optional[str]:

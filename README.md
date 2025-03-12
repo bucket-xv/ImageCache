@@ -33,7 +33,7 @@ The cache supports two eviction policies:
 
 The `DockerImageCache` class provides the following interfaces:
 
-### `detect_build(image_id, container_id, usage_time=0)`
+### `detect_run(image_id, container_id, usage_time=0)`
 
 Called when an image is used for a container.
 
@@ -42,7 +42,7 @@ Called when an image is used for a container.
   - `container_id` (str): The ID of the container using the image
   - `usage_time` (float, optional): The time spent using the image in seconds. This is used for the LEAST_TOTAL_TIME_USED policy.
 
-### `detect_remove(image_id, container_id)`
+### `detect_stop(image_id, container_id)`
 
 Called when an image is no longer used for a container.
 
@@ -84,10 +84,10 @@ cache = DockerImageCache(
 )
 
 # When a container starts using an image (with optional usage time)
-cache.detect_build("image123", "container456", usage_time=10)
+cache.detect_run("image123", "container456", usage_time=10)
 
 # When a container stops using an image
-cache.detect_remove("image123", "container456")
+cache.detect_stop("image123", "container456")
 
 # When you need to free up space by removing an unused image
 # (using the policy specified at initialization)
@@ -115,8 +115,8 @@ To integrate this cache strategy into your Docker image management system:
 
 1. Import the `DockerImageCache` class
 2. Initialize it with an appropriate time window
-3. Call `detect_build()` when containers start using images
-4. Call `detect_remove()` when containers stop using images
+3. Call `detect_run()` when containers start using images
+4. Call `detect_stop()` when containers stop using images
 5. Periodically call `evict()` to identify images that can be safely removed
 
 ## Customization
