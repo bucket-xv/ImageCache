@@ -12,7 +12,7 @@ class EvictionPolicy(enum.Enum):
 
 class DockerImageCache:
     """
-    An LRU-like cache strategy for Docker image storage.
+    An LRU-like cache strategy for Docker image storage. This class should be thread safe.
 
     This class implements a cache strategy that tracks Docker image usage
     and provides mechanisms to evict images based on different policies:

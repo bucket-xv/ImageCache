@@ -22,9 +22,9 @@ cd ImageCache
 ./create_files.sh
 ```
 
-2. Run docker compose
+2. Run test
 ```bash
-docker compose up
+python3 test.py
 ```
 
 
