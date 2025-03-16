@@ -12,4 +12,4 @@ def zipdir(path, ziph):
 
 
 with zipfile.ZipFile('Python.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-    zipdir('tmp/', zipf)
+    zipdir('/files', zipf)
