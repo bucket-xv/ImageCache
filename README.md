@@ -6,7 +6,7 @@
 ```bash
 docker build -t image-cache-app1:latest app1
 docker build -t image-cache-app2:latest app2
-./upload.sh
+server_ip=121.40.242.35 registry_ip=192.168.0.17 ./upload.sh root
 ```
 
 ## Setup

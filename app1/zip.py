@@ -11,5 +11,5 @@ def zipdir(path, ziph):
                                        os.path.join(path, '..')))
 
 
-with zipfile.ZipFile('Python.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-    zipdir('/files', zipf)
+with zipfile.ZipFile('/files/app1.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+    zipdir('/files/zip', zipf)
