@@ -11,9 +11,21 @@ docker build -t image-cache-app2:latest app2
 
 ## Setup
 
+0. Clone the repository
+```bash
+git clone git@github.com:bucket-xv/ImageCache.git
+cd ImageCache
+```
+
 1. Create random file to zip
 ```bash
 ./create_files.sh
 ```
+
+2. Run docker compose
+```bash
+docker compose up
+```
+
 
 
