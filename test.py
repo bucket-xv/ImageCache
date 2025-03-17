@@ -37,8 +37,8 @@ def main():
     cache = DockerImageCache(time_window=60, cache_size=1)
     folder1_to_zip = os.path.join(project_dir, 'data/app1')  
     folder2_to_zip = os.path.join(project_dir, 'data/app2')
-    iteration1 = 10
-    iteration2 = 30
+    iteration1 = 2
+    iteration2 = 4
     total_iterations = iteration1 + iteration2
 
     # Create one thread for each function
