@@ -36,6 +36,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
         time.sleep(1)
 
     with total_cache_miss_lock:
+        global total_cache_miss
         total_cache_miss += cache_miss
 
 def main():
