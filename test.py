@@ -12,6 +12,7 @@ project_dir = os.path.dirname(os.path.abspath(__file__))
 def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
     cache_miss = 0
     for i in range(iterations):
+        print(f"Iteration {i+1} of {iterations} with image {image_name}")
         result = subprocess.run(f"docker images -q {image_name}", shell=True, capture_output=True, text=True)
         if result.stdout.strip() == '':
             subprocess.run(f"docker pull {image_name}")
