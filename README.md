@@ -24,7 +24,7 @@ cd ImageCache
 
 2. Run test
 ```bash
-python3 test.py
+python3 test.py --ip 192.168.0.17
 ```
 
 

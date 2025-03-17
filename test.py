@@ -2,6 +2,7 @@ import subprocess
 from docker_image_cache import DockerImageCache
 import threading
 import time
+import argparse
 total_cache_miss = 0
 total_cache_miss_lock = threading.Lock()
 
@@ -28,13 +29,18 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip", type=str, required=True)
+    args = parser.parse_args()
+    registry_ip = args.ip
+
     cache = DockerImageCache(time_window=60)
     folder1_to_zip = 'data/app1'  
     folder2_to_zip = 'data/app2'
 
     # Create one thread for each function
-    thread1 = threading.Thread(target=thread_func, args=(cache,folder1_to_zip, 'image-cache-app1:latest', 'container1', 10))
-    thread2 = threading.Thread(target=thread_func, args=(cache,folder2_to_zip, 'image-cache-app2:latest', 'container2', 30))
+    thread1 = threading.Thread(target=thread_func, args=(cache,folder1_to_zip, f'{registry_ip}:5000/image-cache-app1:latest', 'container1', 10))
+    thread2 = threading.Thread(target=thread_func, args=(cache,folder2_to_zip, f'{registry_ip}:5000/image-cache-app2:latest', 'container2', 30))
 
     # Start the threads
     thread1.start()
