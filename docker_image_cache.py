@@ -83,7 +83,7 @@ class DockerImageCache:
                 usage_time = end_time - start_time
 
                 # Add the calculated usage time to the total for this image
-                self.image_total_usage_time[image_id] += usage_time
+                self.image_usage_history[image_id].append((start_time, end_time))
 
                 # Remove the start time entry
                 del self.container_start_times[(image_id, container_id)]
