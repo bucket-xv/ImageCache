@@ -16,26 +16,38 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
     pulling_time = 0
     for i in range(iterations):
         print(f"Iteration {i+1} of {iterations} with image {image_name}")
-        result = subprocess.run(f"docker images -q {image_name}", shell=True, capture_output=True, text=True)
-
+        
+        message = cache.put_image(image_name, container_name)
         # When the image is not in the cache, it will be pulled, and the cache will be updated
-        cache.detect_run(image_name, container_name)
-        if result.stdout.strip() == '':
+        while message is None:
+            print("Cache is full, no image to evict")
+            time.sleep(1)
+            message = cache.put_image(image_name, container_name)
+
+        if message == "Already in cache":
+            print(f"Image {image_name} cache hit")
+        elif message == "Directly put in cache":
+            cache_miss += 1
             start_time = time.time()
             subprocess.run(f"docker pull {image_name}", shell=True,capture_output=not verbose, text=True)
             end_time = time.time()
             pulling_time += end_time - start_time
-            cache_miss += 1
+            print(f"Cold miss so Image {image_name} pulled")
         else:
-            print(f"Image {image_name} already in cache")
+            image_to_evict = message
+            print(f"Evicting image: {image_to_evict}")
+            subprocess.run(f"docker rmi {image_to_evict}", shell=True, capture_output=not verbose, text=True)            
+            cache_miss += 1
+            start_time = time.time()
+            subprocess.run(f"docker pull {image_name}", shell=True,capture_output=not verbose, text=True)
+            end_time = time.time()
+            pulling_time += end_time - start_time
+            print(f"Capcity miss so Image {image_name} pulled")
         
         # Run the container
         subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, capture_output=not verbose, text=True)
         cache.detect_stop(image_name, container_name)
-        image_to_evict = cache.evict()
-        if image_to_evict is not None:
-            print(f"Evicting image: {image_to_evict}")
-            subprocess.run(f"docker rmi {image_to_evict}", shell=True, capture_output=not verbose, text=True)
+       
         time.sleep(1)
 
     with total_cache_miss_lock:
@@ -51,7 +63,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
 
-    cache = DockerImageCache(time_window=60, cache_size=2, policy=EvictionPolicy.LEAST_FREQUENTLY_USED)
+    cache = DockerImageCache(time_window=60, cache_size=1, policy=EvictionPolicy.LEAST_FREQUENTLY_USED)
     folders_to_zip = [
         os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(3)
     ]

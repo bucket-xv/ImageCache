@@ -53,7 +53,7 @@ class DockerImageCache:
         # Eviction policy to use
         self.policy = policy
 
-    def detect_run(self, image_id: str, container_id: str) -> None:
+    def _record_usage(self, image_id: str, container_id: str) -> None:
         """
         Called when an image is used for a container.
 
@@ -61,18 +61,17 @@ class DockerImageCache:
             image_id: The ID of the Docker image
             container_id: The ID of the container using the image
         """
-        with self._lock:
-            # Record that this container is using this image
-            self.image_containers[image_id].add(container_id)
+        # Record that this container is using this image
+        self.image_containers[image_id].add(container_id)
 
-            # Record the current time as a usage timestamp
-            current_time = time.time()
-            self.image_usage_history[image_id].append(current_time)
+        # Record the current time as a usage timestamp
+        current_time = time.time()
+        self.image_usage_history[image_id].append(current_time)
 
-            # Store the start time for this container/image pair
-            self.container_start_times[(image_id, container_id)] = current_time
+        # Store the start time for this container/image pair
+        self.container_start_times[(image_id, container_id)] = current_time
 
-    def detect_stop(self, image_id: str, container_id: str) -> None:
+    def record_stop(self, image_id: str, container_id: str) -> None:
         """
         Called when an image is no longer used for a container.
 
@@ -145,28 +144,40 @@ class DockerImageCache:
         """
         return self.image_total_usage_time.get(image_id, 0)
 
-    def evict(self, policy: Optional[EvictionPolicy] = None) -> Optional[str]:
+    def put_image(self, image_id: str, container_id: str) -> Optional[str]:
         """
-        Select an image that is no longer in use based on the specified eviction policy.
+        Put an image into the cache. If the image is already in the cache, do nothing.
+        If the cache is full, evict an image and put the new image into the cache.
 
         Args:
-            policy: Eviction policy to use (default: None, which uses the policy specified at initialization)
+            image_id: The ID of the Docker image
+            container_id: The ID of the container using the image
 
         Returns:
-            The ID of the image to evict, or None if no images can be evicted
+            "Already in cache" if the image is already in the cache;
+            "Directly put in cache" if the image can be directly put into cache;
+            the ID of the image that was evicted if some image was evicted;
+            None if the cache is too full to put the image into the cache
         """
         with self._lock:
+            # If the image is already in the cache, do nothing
+            if image_id in self.image_containers:
+                self._record_usage(image_id, container_id)
+                return "Already in cache"
+            
+            # If the cache is not full, put the image into the cache
             if len(self.image_containers) <= self.cache_size:
-                return None
+                self._record_usage(image_id, container_id)
+                return "Directly put in cache"
 
-            # Get list of images not in use by any containers
+            # Otherwise, evict an image and put the new image into the cache
             unused_images = self._get_unused_images()
 
             if not unused_images:
                 return None  # No images available for eviction
 
             # Use the specified policy or the default policy
-            active_policy = policy if policy is not None else self.policy
+            active_policy = self.policy
 
             if active_policy == EvictionPolicy.LEAST_FREQUENTLY_USED:
                 # Find the image with the least usage in the time window
@@ -175,6 +186,7 @@ class DockerImageCache:
                     key=lambda x: self._count_recent_usage(x)
                 )
                 self.image_containers.pop(least_used_image)
+                self._record_usage(image_id, container_id)
                 return least_used_image
             elif active_policy == EvictionPolicy.LEAST_TOTAL_TIME_USED:
                 # Find the image with the least total usage time
@@ -183,6 +195,7 @@ class DockerImageCache:
                     key=lambda x: self._get_total_usage_time(x)
                 )
                 self.image_containers.pop(least_time_used_image)
+                self._record_usage(image_id, container_id)
                 return least_time_used_image
             else:
                 raise ValueError(f"Unknown eviction policy: {active_policy}")
