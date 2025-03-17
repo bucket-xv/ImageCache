@@ -51,11 +51,9 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
 
-    cache = DockerImageCache(time_window=60, cache_size=1, policy=EvictionPolicy.LEAST_FREQUENTLY_USED)
+    cache = DockerImageCache(time_window=60, cache_size=2, policy=EvictionPolicy.LEAST_FREQUENTLY_USED)
     folders_to_zip = [
-        os.path.join(project_dir, 'data/app1'),
-        os.path.join(project_dir, 'data/app2'),
-        os.path.join(project_dir, 'data/app3')
+        os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(3)
     ]
     iterations = [4, 8, 16]
     total_iterations = sum(iterations)
