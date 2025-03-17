@@ -46,7 +46,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         
         # Run the container
         subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, capture_output=not verbose, text=True)
-        cache.detect_stop(image_name, container_name)
+        cache.record_stop(image_name, container_name)
        
         time.sleep(1)
 
