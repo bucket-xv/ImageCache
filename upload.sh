@@ -13,3 +13,4 @@ upload_image() {
 
 upload_image image-cache-app1:latest
 upload_image image-cache-app2:latest
+upload_image image-cache-app3:latest
