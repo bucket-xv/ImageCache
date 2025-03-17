@@ -14,13 +14,17 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
     for i in range(iterations):
         print(f"Iteration {i+1} of {iterations} with image {image_name}")
         result = subprocess.run(f"docker images -q {image_name}", shell=True, capture_output=True, text=True)
+
+        # When the image is not in the cache, it will be pulled, and the cache will be updated
+        cache.detect_run(image_name, container_name)
         if result.stdout.strip() == '':
             subprocess.run(f"docker pull {image_name}")
             cache_miss += 1
         else:
             print(f"Image {image_name} already in cache")
+        
+        # Run the container
         print(f"Running container {container_name}")
-        cache.detect_run(image_name, container_name)
         subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, text=True)
         print(f"Stopping container {container_name}")
         cache.detect_stop(image_name, container_name)
