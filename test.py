@@ -17,7 +17,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
             subprocess.run(f"docker pull {image_name}")
             cache_miss += 1
         cache.detect_run(image_name, container_name)
-        subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}")
+        subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, text=True)
         cache.detect_stop(image_name, container_name)
         image_to_evict = cache.evict()
         if image_to_evict is not None:
