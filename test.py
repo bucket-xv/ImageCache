@@ -3,8 +3,11 @@ from docker_image_cache import DockerImageCache
 import threading
 import time
 import argparse
+import os
 total_cache_miss = 0
 total_cache_miss_lock = threading.Lock()
+
+project_dir = os.path.dirname(os.path.abspath(__file__))
 
 def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
     cache_miss = 0
@@ -26,8 +29,6 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
         total_cache_miss += cache_miss
     return cache_miss
 
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", type=str, required=True)
@@ -35,8 +36,8 @@ def main():
     registry_ip = args.ip
 
     cache = DockerImageCache(time_window=60, cache_size=1)
-    folder1_to_zip = 'data/app1'  
-    folder2_to_zip = 'data/app2'
+    folder1_to_zip = os.path.join(project_dir, 'data/app1')  
+    folder2_to_zip = os.path.join(project_dir, 'data/app2')
 
     # Create one thread for each function
     thread1 = threading.Thread(target=thread_func, args=(cache,folder1_to_zip, f'{registry_ip}:5000/image-cache-app1:latest', 'container1', 10))
