@@ -34,7 +34,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
 
-    cache = DockerImageCache(time_window=60)
+    cache = DockerImageCache(time_window=60, cache_size=1)
     folder1_to_zip = 'data/app1'  
     folder2_to_zip = 'data/app2'
 
@@ -51,3 +51,7 @@ def main():
     thread2.join()
 
     print("All threads have finished")
+
+if __name__ == "__main__":
+    main()
+
