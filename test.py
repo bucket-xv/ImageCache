@@ -67,6 +67,7 @@ def main():
     parser.add_argument("--verbose", "-v", type=bool, required=False, default=False)
     args = parser.parse_args()
     registry_ip = args.ip
+    num_apps = 3
     iterations = [6, 10, 16]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
@@ -75,13 +76,13 @@ def main():
     start_time = time.time()
     for policy in policies:
         # Clean up the images
-        for i in range(len(folders_to_zip)):
+        for i in range(num_apps):
             subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app{i+1}:latest", shell=True, text=True)
 
         # Initialize the cache
         cache = DockerImageCache(time_window=60, cache_size=1, policy=policy)
         folders_to_zip = [
-            os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(3)
+            os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(num_apps)
         ]
         # Create one thread for each function
         threads = []
