@@ -32,7 +32,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
         image_to_evict = cache.evict()
         if image_to_evict is not None:
             print(f"Evicting image: {image_to_evict}")
-            subprocess.run(f"docker rmi {image_to_evict}")
+            subprocess.run(f"docker rmi {image_to_evict}", shell=True, text=True)
         time.sleep(1)
 
     with total_cache_miss_lock:
@@ -62,6 +62,10 @@ def main():
     # Wait for all threads to finish
     thread1.join()
     thread2.join()
+
+    # Clean up the images
+    subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app1:latest", shell=True, text=True)
+    subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app2:latest", shell=True, text=True)
 
     print("All threads have finished")
     print(f"Total iterations: {total_iterations}")
