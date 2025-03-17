@@ -1,5 +1,6 @@
 import time
 import enum
+import threading
 from collections import defaultdict
 from typing import Dict, Set, List, Tuple, Optional
 
@@ -12,7 +13,7 @@ class EvictionPolicy(enum.Enum):
 
 class DockerImageCache:
     """
-    An LRU-like cache strategy for Docker image storage. This class should be thread safe.
+    An LRU-like cache strategy for Docker image storage. This class is thread safe.
 
     This class implements a cache strategy that tracks Docker image usage
     and provides mechanisms to evict images based on different policies:
@@ -20,7 +21,7 @@ class DockerImageCache:
     2. Least total time used
     """
 
-    def __init__(self, time_window: int = 3600, policy: EvictionPolicy = EvictionPolicy.LEAST_FREQUENTLY_USED):
+    def __init__(self, time_window: int = 3600, cache_size: int = 100, policy: EvictionPolicy = EvictionPolicy.LEAST_FREQUENTLY_USED):
         """
         Initialize the Docker image cache.
 
@@ -28,6 +29,9 @@ class DockerImageCache:
             time_window: Time window in seconds to consider for usage statistics (default: 1 hour)
             policy: Eviction policy to use (default: LEAST_FREQUENTLY_USED)
         """
+        # Thread lock for protecting shared resources
+        self._lock = threading.Lock()
+
         # Map of image_id -> set of container_ids using this image
         self.image_containers: Dict[str, Set[str]] = defaultdict(set)
 
@@ -43,6 +47,9 @@ class DockerImageCache:
         # Time window to consider for usage statistics (in seconds)
         self.time_window = time_window
 
+        # Maximum number of images to keep in the cache
+        self.cache_size = cache_size
+
         # Eviction policy to use
         self.policy = policy
 
@@ -54,15 +61,16 @@ class DockerImageCache:
             image_id: The ID of the Docker image
             container_id: The ID of the container using the image
         """
-        # Record that this container is using this image
-        self.image_containers[image_id].add(container_id)
+        with self._lock:
+            # Record that this container is using this image
+            self.image_containers[image_id].add(container_id)
 
-        # Record the current time as a usage timestamp
-        current_time = time.time()
-        self.image_usage_history[image_id].append(current_time)
+            # Record the current time as a usage timestamp
+            current_time = time.time()
+            self.image_usage_history[image_id].append(current_time)
 
-        # Store the start time for this container/image pair
-        self.container_start_times[(image_id, container_id)] = current_time
+            # Store the start time for this container/image pair
+            self.container_start_times[(image_id, container_id)] = current_time
 
     def detect_stop(self, image_id: str, container_id: str) -> None:
         """
@@ -72,21 +80,22 @@ class DockerImageCache:
             image_id: The ID of the Docker image
             container_id: The ID of the container that was using the image
         """
-        # Calculate usage time if we have a start time for this container/image pair
-        if (image_id, container_id) in self.container_start_times:
-            start_time = self.container_start_times[(image_id, container_id)]
-            end_time = time.time()
-            usage_time = end_time - start_time
+        with self._lock:
+            # Calculate usage time if we have a start time for this container/image pair
+            if (image_id, container_id) in self.container_start_times:
+                start_time = self.container_start_times[(image_id, container_id)]
+                end_time = time.time()
+                usage_time = end_time - start_time
 
-            # Add the calculated usage time to the total for this image
-            self.image_total_usage_time[image_id] += usage_time
+                # Add the calculated usage time to the total for this image
+                self.image_total_usage_time[image_id] += usage_time
 
-            # Remove the start time entry
-            del self.container_start_times[(image_id, container_id)]
+                # Remove the start time entry
+                del self.container_start_times[(image_id, container_id)]
 
-        # Remove this container from the set of containers using this image
-        if image_id in self.image_containers and container_id in self.image_containers[image_id]:
-            self.image_containers[image_id].remove(container_id)
+            # Remove this container from the set of containers using this image
+            if image_id in self.image_containers and container_id in self.image_containers[image_id]:
+                self.image_containers[image_id].remove(container_id)
 
     def get_unused_images(self) -> List[str]:
         """
@@ -95,10 +104,11 @@ class DockerImageCache:
         Returns:
             A list of image IDs that are not in use
         """
-        return [
-            image_id for image_id, containers in self.image_containers.items()
-            if len(containers) == 0
-        ]
+        with self._lock:
+            return [
+                image_id for image_id, containers in self.image_containers.items()
+                if len(containers) == 0
+            ]
 
     def count_recent_usage(self, image_id: str) -> int:
         """
@@ -110,19 +120,20 @@ class DockerImageCache:
         Returns:
             The number of times the image was used within the time window
         """
-        if image_id not in self.image_usage_history:
-            return 0
+        with self._lock:
+            if image_id not in self.image_usage_history:
+                return 0
 
-        current_time = time.time()
-        cutoff_time = current_time - self.time_window
+            current_time = time.time()
+            cutoff_time = current_time - self.time_window
 
-        # Count usages that occurred within the time window
-        recent_usages = sum(
-            1 for timestamp in self.image_usage_history[image_id]
-            if timestamp >= cutoff_time
-        )
+            # Count usages that occurred within the time window
+            recent_usages = sum(
+                1 for timestamp in self.image_usage_history[image_id]
+                if timestamp >= cutoff_time
+            )
 
-        return recent_usages
+            return recent_usages
 
     def get_total_usage_time(self, image_id: str) -> float:
         """
@@ -134,8 +145,8 @@ class DockerImageCache:
         Returns:
             The total time the image has been used (in seconds)
         """
-
-        return self.image_total_usage_time.get(image_id, 0)
+        with self._lock:
+            return self.image_total_usage_time.get(image_id, 0)
 
     def evict(self, policy: Optional[EvictionPolicy] = None) -> Optional[str]:
         """
@@ -147,31 +158,37 @@ class DockerImageCache:
         Returns:
             The ID of the image to evict, or None if no images can be evicted
         """
-        # Get list of images not in use by any containers
-        unused_images = self.get_unused_images()
+        with self._lock:
+            if len(self.image_containers) <= self.cache_size:
+                return None
 
-        if not unused_images:
-            return None  # No images available for eviction
+            # Get list of images not in use by any containers
+            unused_images = self.get_unused_images()
 
-        # Use the specified policy or the default policy
-        active_policy = policy if policy is not None else self.policy
+            if not unused_images:
+                return None  # No images available for eviction
 
-        if active_policy == EvictionPolicy.LEAST_FREQUENTLY_USED:
-            # Find the image with the least usage in the time window
-            least_used_image = min(
-                unused_images,
-                key=self.count_recent_usage
-            )
-            return least_used_image
-        elif active_policy == EvictionPolicy.LEAST_TOTAL_TIME_USED:
-            # Find the image with the least total usage time
-            least_time_used_image = min(
-                unused_images,
-                key=lambda image_id: self.get_total_usage_time(image_id)
-            )
-            return least_time_used_image
-        else:
-            raise ValueError(f"Unknown eviction policy: {active_policy}")
+            # Use the specified policy or the default policy
+            active_policy = policy if policy is not None else self.policy
+
+            if active_policy == EvictionPolicy.LEAST_FREQUENTLY_USED:
+                # Find the image with the least usage in the time window
+                least_used_image = min(
+                    unused_images,
+                    key=lambda x: self.count_recent_usage(x)
+                )
+                self.image_containers.pop(least_used_image)
+                return least_used_image
+            elif active_policy == EvictionPolicy.LEAST_TOTAL_TIME_USED:
+                # Find the image with the least total usage time
+                least_time_used_image = min(
+                    unused_images,
+                    key=lambda x: self.get_total_usage_time(x)
+                )
+                self.image_containers.pop(least_time_used_image)
+                return least_time_used_image
+            else:
+                raise ValueError(f"Unknown eviction policy: {active_policy}")
 
     def get_image_stats(self) -> List[Tuple[str, int, int, float]]:
         """
@@ -180,12 +197,13 @@ class DockerImageCache:
         Returns:
             A list of tuples (image_id, container_count, recent_usage_count, total_usage_time)
         """
-        stats = []
-        for image_id in self.image_containers:
-            container_count = len(self.image_containers[image_id])
-            recent_usage_count = self.count_recent_usage(image_id)
-            total_usage_time = self.get_total_usage_time(image_id)
-            stats.append((image_id, container_count,
-                         recent_usage_count, total_usage_time))
+        with self._lock:
+            stats = []
+            for image_id in self.image_containers:
+                container_count = len(self.image_containers[image_id])
+                recent_usage_count = self.count_recent_usage(image_id)
+                total_usage_time = self.get_total_usage_time(image_id)
+                stats.append((image_id, container_count,
+                            recent_usage_count, total_usage_time))
 
-        return stats
+            return stats
