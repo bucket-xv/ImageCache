@@ -21,7 +21,8 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         message = cache.put_image(image_name, container_name)
         # When the image is not in the cache, it will be pulled, and the cache will be updated
         while message is None:
-            print("Cache is full, no image to evict")
+            if verbose: 
+                print("Cache is full, we have to wait")
             time.sleep(1)
             message = cache.put_image(image_name, container_name)
 
@@ -38,7 +39,8 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
                 print(f"Cold miss so Image {image_name} pulled")
         else:
             image_to_evict = message
-            print(f"Evicting image: {image_to_evict}")
+            if verbose:
+                print(f"Evicting image: {image_to_evict}")
             subprocess.run(f"docker rmi {image_to_evict}", shell=True, capture_output=not verbose, text=True)            
             cache_miss += 1
             start_time = time.time()
@@ -65,6 +67,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", "-i", type=str, required=True)
     parser.add_argument("--verbose", "-v", type=bool, required=False, default=False)
+    parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
@@ -80,7 +83,7 @@ def main():
             subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app{i+1}:latest", shell=True, text=True)
 
         # Initialize the cache
-        cache = DockerImageCache(time_window=60, cache_size=1, policy=policy)
+        cache = DockerImageCache(time_window=args.time_window, cache_size=1, policy=policy)
         folders_to_zip = [
             os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(num_apps)
         ]
@@ -98,7 +101,7 @@ def main():
         for thread in threads:
             thread.join()
 
-        print(f"Experiment {policy} summary:")
+        print(f"{policy} summary:")
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
         print(f"Total pulling time: {total_pulling_time} seconds")
 
