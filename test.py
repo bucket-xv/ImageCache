@@ -27,7 +27,6 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations):
 
     with total_cache_miss_lock:
         total_cache_miss += cache_miss
-    return cache_miss
 
 def main():
     parser = argparse.ArgumentParser()
@@ -38,10 +37,13 @@ def main():
     cache = DockerImageCache(time_window=60, cache_size=1)
     folder1_to_zip = os.path.join(project_dir, 'data/app1')  
     folder2_to_zip = os.path.join(project_dir, 'data/app2')
+    iteration1 = 10
+    iteration2 = 30
+    total_iterations = iteration1 + iteration2
 
     # Create one thread for each function
-    thread1 = threading.Thread(target=thread_func, args=(cache,folder1_to_zip, f'{registry_ip}:5000/image-cache-app1:latest', 'container1', 10))
-    thread2 = threading.Thread(target=thread_func, args=(cache,folder2_to_zip, f'{registry_ip}:5000/image-cache-app2:latest', 'container2', 30))
+    thread1 = threading.Thread(target=thread_func, args=(cache,folder1_to_zip, f'{registry_ip}:5000/image-cache-app1:latest', 'container1', iteration1))
+    thread2 = threading.Thread(target=thread_func, args=(cache,folder2_to_zip, f'{registry_ip}:5000/image-cache-app2:latest', 'container2', iteration2))
 
     # Start the threads
     thread1.start()
@@ -52,6 +54,8 @@ def main():
     thread2.join()
 
     print("All threads have finished")
+    print(f"Total iterations: {total_iterations}")
+    print(f"Total cache miss: {total_cache_miss}")
 
 if __name__ == "__main__":
     main()
