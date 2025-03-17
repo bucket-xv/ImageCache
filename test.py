@@ -67,7 +67,7 @@ def main():
     folders_to_zip = [
         os.path.join(project_dir, f'data/app{i+1}/zip') for i in range(3)
     ]
-    iterations = [4, 8, 16]
+    iterations = [6, 10, 16]
     total_iterations = sum(iterations)
 
     # Create one thread for each function
