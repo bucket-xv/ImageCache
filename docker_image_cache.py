@@ -35,11 +35,8 @@ class DockerImageCache:
         # Map of image_id -> set of container_ids using this image
         self.image_containers: Dict[str, Set[str]] = defaultdict(set)
 
-        # Map of image_id -> list of timestamps when the image was used
-        self.image_usage_history: Dict[str, List[float]] = defaultdict(list)
-
-        # Map of image_id -> total usage time (in seconds)
-        self.image_total_usage_time: Dict[str, float] = defaultdict(float)
+        # Map of image_id -> list of (start_time, end_time)
+        self.image_usage_history: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
 
         # Map of (image_id, container_id) -> start timestamp
         self.container_start_times: Dict[Tuple[str, str], float] = {}
@@ -66,7 +63,6 @@ class DockerImageCache:
 
         # Record the current time as a usage timestamp
         current_time = time.time()
-        self.image_usage_history[image_id].append(current_time)
 
         # Store the start time for this container/image pair
         self.container_start_times[(image_id, container_id)] = current_time
@@ -126,23 +122,35 @@ class DockerImageCache:
 
         # Count usages that occurred within the time window
         recent_usages = sum(
-            1 for timestamp in self.image_usage_history[image_id]
-            if timestamp >= cutoff_time
+            1 for (start_time, _) in self.image_usage_history[image_id]
+            if start_time >= cutoff_time
         )
 
         return recent_usages
 
     def _get_total_usage_time(self, image_id: str) -> float:
         """
-        Get the total time an image has been used.
+        Get the total time an image has been used within the time window.
 
         Args:
             image_id: The ID of the Docker image
 
         Returns:
-            The total time the image has been used (in seconds)
+            The total time the image has been used within the time window (in seconds)
         """
-        return self.image_total_usage_time.get(image_id, 0)
+        if image_id not in self.image_usage_history:
+            return 0
+
+        current_time = time.time()
+        cutoff_time = current_time - self.time_window
+
+        # Count usages that occurred within the time window
+        total_usage_time = sum(
+            end_time - start_time for (start_time, end_time) in self.image_usage_history[image_id]
+            if start_time >= cutoff_time
+        )
+
+        return total_usage_time
 
     def put_image(self, image_id: str, container_id: str) -> Optional[str]:
         """

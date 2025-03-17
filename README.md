@@ -4,8 +4,9 @@
 
 1. Build docker images
 ```bash
-docker build -t image-cache-app1:latest app1
-docker build -t image-cache-app2:latest app2
+docker build -t image-cache-app1:latest app
+docker build -t image-cache-app2:latest app
+docker build -t image-cache-app3:latest app
 server_ip=121.40.242.35 registry_ip=192.168.0.17 ./upload.sh root
 ```
 
