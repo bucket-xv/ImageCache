@@ -78,9 +78,13 @@ def main():
     # Run the experiment for each policy
     start_time = time.time()
     for policy in policies:
+        global total_cache_miss
+        global total_pulling_time
+        total_cache_miss = 0
+        total_pulling_time = 0
         # Clean up the images
         for i in range(num_apps):
-            subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app{i+1}:latest", shell=True, text=True)
+            subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app{i+1}:latest", shell=True, capture_output=not args.verbose, text=True)
 
         # Initialize the cache
         cache = DockerImageCache(time_window=args.time_window, cache_size=1, policy=policy)
