@@ -65,6 +65,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
     with total_pulling_time_lock:
         global total_pulling_time
         total_pulling_time += pulling_time
+    print(f"Average startup time for {image_name}: {pulling_time / iterations} seconds")
     print(f"Average execution time for {image_name}: {execution_time / iterations} seconds")
 
 def main():
