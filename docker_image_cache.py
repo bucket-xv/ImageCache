@@ -173,7 +173,7 @@ class DockerImageCache:
                 return "Already in cache"
             
             # If the cache is not full, put the image into the cache
-            if len(self.image_containers) <= self.cache_size:
+            if len(self.image_containers) < self.cache_size:
                 self._record_usage(image_id, container_id)
                 return "Directly put in cache"
 
