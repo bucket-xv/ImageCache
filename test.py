@@ -77,7 +77,7 @@ def main():
     # Run the experiment for each policy
     
     for policy in policies:
-        start_time = time.time()
+        
         global total_cache_miss
         global total_pulling_time
         total_cache_miss = 0
@@ -97,6 +97,7 @@ def main():
             thread = threading.Thread(target=thread_func, args=(cache,folder, f'{registry_ip}:5000/image-cache-app{i+1}:latest', f'container{i+1}', iterations[i], args.verbose))
             threads.append(thread)
 
+        start_time = time.time()
         # Start the threads
         for thread in threads:
             thread.start()
@@ -104,12 +105,11 @@ def main():
         # Wait for all threads to finish
         for thread in threads:
             thread.join()
+        end_time = time.time()
 
         print(f"{policy} summary:")
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
         print(f"Total pulling time: {total_pulling_time} seconds")
-
-        end_time = time.time()
         print(f"Total execution time: {end_time - start_time} seconds")
 
 if __name__ == "__main__":
