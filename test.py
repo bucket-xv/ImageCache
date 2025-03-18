@@ -66,7 +66,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", "-i", type=str, required=True)
-    parser.add_argument("--verbose", "-v", type=bool, required=False, default=False)
+    parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
     args = parser.parse_args()
     registry_ip = args.ip
