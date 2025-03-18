@@ -53,7 +53,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, capture_output=not verbose, text=True)
         cache.record_stop(image_name, container_name)
        
-        time.sleep(0.2)
+        time.sleep(0.4)
 
     with total_cache_miss_lock:
         global total_cache_miss
@@ -75,8 +75,9 @@ def main():
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
     # Run the experiment for each policy
-    start_time = time.time()
+    
     for policy in policies:
+        start_time = time.time()
         global total_cache_miss
         global total_pulling_time
         total_cache_miss = 0
@@ -108,8 +109,8 @@ def main():
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
         print(f"Total pulling time: {total_pulling_time} seconds")
 
-    end_time = time.time()
-    print(f"Total experiment time: {end_time - start_time} seconds")
+        end_time = time.time()
+        print(f"Total execution time: {end_time - start_time} seconds")
 
 if __name__ == "__main__":
     main()
