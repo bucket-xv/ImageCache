@@ -7,7 +7,7 @@
 docker build -t image-cache-app1:latest app
 docker build -t image-cache-app2:latest app
 docker build -t image-cache-app3:latest app
-server_ip=121.40.242.35 registry_ip=192.168.0.17 ./upload.sh root
+server_ip=121.40.242.35 ./upload.sh root
 ```
 
 ## Setup
@@ -25,7 +25,7 @@ cd ImageCache
 
 2. Run test
 ```bash
-python3 test.py --ip 192.168.0.17
+python3 test.py
 ```
 
 

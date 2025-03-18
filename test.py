@@ -14,6 +14,7 @@ project_dir = os.path.dirname(os.path.abspath(__file__))
 def thread_func(cache, folder_to_zip, image_name, container_name, iterations, verbose=False):
     cache_miss = 0
     pulling_time = 0
+    execution_time = 0
     for i in range(iterations):
         if verbose:
             print(f"Iteration {i+1} of {iterations} with image {image_name}")
@@ -50,7 +51,10 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
                 print(f"Capcity miss so Image {image_name} pulled")
         
         # Run the container
+        start_time = time.time()
         subprocess.run(f"docker run -v {folder_to_zip}:/files --rm --name {container_name} {image_name}", shell=True, capture_output=not verbose, text=True)
+        end_time = time.time()
+        execution_time += end_time - start_time
         cache.record_stop(image_name, container_name)
        
         time.sleep(0.4)
@@ -61,10 +65,11 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
     with total_pulling_time_lock:
         global total_pulling_time
         total_pulling_time += pulling_time
+    print(f"Average execution time for {image_name}: {execution_time / iterations} seconds")
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", "-i", type=str, required=True)
+    parser.add_argument("--ip", "-i", type=str, default="master")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
     args = parser.parse_args()

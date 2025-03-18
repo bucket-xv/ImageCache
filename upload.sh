@@ -1,6 +1,7 @@
 #! /bin/bash
 
 username=$1
+registry_ip=master
 # Function to upload a certain image to the registry
 upload_image() {
     image_name=$1
