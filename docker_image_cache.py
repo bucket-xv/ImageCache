@@ -212,7 +212,7 @@ class DockerImageCache:
         Get statistics about all images in the cache.
 
         Returns:
-            A list of tuples (image_id, container_count, recent_usage_time, total_usage_time)
+            A list of tuples (image_id, container_count, recent_usage_time_interval, total_usage_time)
         """
         with self._lock:
             stats = []
