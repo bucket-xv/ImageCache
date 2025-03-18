@@ -65,8 +65,9 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
     with total_pulling_time_lock:
         global total_pulling_time
         total_pulling_time += pulling_time
-    print(f"Average startup time for {image_name}: {pulling_time / iterations:.3f} seconds")
-    print(f"Average execution time for {image_name}: {execution_time / iterations:.3f} seconds")
+
+    print(f"Average startup time for {container_name}: {pulling_time / iterations:.3f} seconds")
+    print(f"Average execution time for {container_name}: {execution_time / iterations:.3f} seconds")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -100,7 +101,7 @@ def main():
         # Create one thread for each function
         threads = []
         for i, folder in enumerate(folders_to_zip):
-            thread = threading.Thread(target=thread_func, args=(cache,folder, f'{registry_ip}:5000/image-cache-app{i+1}:latest', f'container{i+1}', iterations[i], args.verbose))
+            thread = threading.Thread(target=thread_func, args=(cache,folder, f'{registry_ip}:5000/image-cache-app{i+1}:latest', f'app{i+1}', iterations[i], args.verbose))
             threads.append(thread)
 
         start_time = time.time()
