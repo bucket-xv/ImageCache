@@ -76,7 +76,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
-    iterations = [2, 6, 12]
+    iterations = [2, 10, 15]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
