@@ -1,6 +1,7 @@
-mkdir -p data/app1/zip
-mkdir -p data/app2/zip
-mkdir -p data/app3/zip
-dd if=/dev/urandom of=data/app1/zip/file1.img bs=1M count=64
-dd if=/dev/urandom of=data/app2/zip/file2.img bs=1M count=32
-dd if=/dev/urandom of=data/app3/zip/file3.img bs=1M count=1
+#!/bin/bash
+
+for i in {1..4}
+do
+    mkdir -p data/app$i/zip
+    dd if=/dev/urandom of=data/app$i/zip/file$i.img bs=1M count=$(($i * $i * 4))
+done

@@ -75,8 +75,8 @@ def main():
     parser.add_argument("--time_window", "-t", type=int, required=False, default=30)
     args = parser.parse_args()
     registry_ip = args.ip
-    num_apps = 3
-    iterations = [4, 10, 15]
+    num_apps = 4
+    iterations = [4, 10, 15, 20]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
