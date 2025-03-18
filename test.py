@@ -66,8 +66,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         global total_pulling_time
         total_pulling_time += pulling_time
 
-    print(f"Average startup time for {container_name}: {pulling_time / iterations:.3f} seconds")
-    print(f"Average execution time for {container_name}: {execution_time / iterations:.3f} seconds")
+    print(f"Average (cache miss rate, startup time, execution time) for {container_name}: {(cache_miss / iterations):.3f}, {(pulling_time / iterations):.3f}, {(execution_time / iterations):.3f}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -77,7 +76,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
-    iterations = [2, 10, 15]
+    iterations = [3, 10, 15]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
