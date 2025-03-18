@@ -24,7 +24,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         while message is None:
             if verbose: 
                 print("Cache is full, we have to wait")
-            time.sleep(0.1)
+            time.sleep(0.05)
             message = cache.put_image(image_name, container_name)
 
         if message == "Already in cache":
