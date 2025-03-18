@@ -20,10 +20,11 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         
         message = cache.put_image(image_name, container_name)
         # When the image is not in the cache, it will be pulled, and the cache will be updated
+        start_time = time.time()
         while message is None:
             if verbose: 
                 print("Cache is full, we have to wait")
-            time.sleep(1)
+            time.sleep(0.1)
             message = cache.put_image(image_name, container_name)
 
         if message == "Already in cache":
@@ -31,7 +32,6 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
                 print(f"Image {image_name} cache hit")
         elif message == "Directly put in cache":
             cache_miss += 1
-            start_time = time.time()
             subprocess.run(f"docker pull {image_name}", shell=True,capture_output=not verbose, text=True)
             end_time = time.time()
             pulling_time += end_time - start_time
@@ -43,7 +43,6 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
                 print(f"Evicting image: {image_to_evict}")
             subprocess.run(f"docker rmi {image_to_evict}", shell=True, capture_output=not verbose, text=True)            
             cache_miss += 1
-            start_time = time.time()
             subprocess.run(f"docker pull {image_name}", shell=True,capture_output=not verbose, text=True)
             end_time = time.time()
             pulling_time += end_time - start_time
@@ -71,7 +70,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
-    iterations = [6, 10, 16]
+    iterations = [6, 8, 10]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
