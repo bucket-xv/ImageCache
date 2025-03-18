@@ -72,10 +72,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", "-i", type=str, default="master")
     parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--time_window", "-t", type=int, required=False, default=30)
+    parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
     args = parser.parse_args()
     registry_ip = args.ip
-    iterations = [20, 15, 10, 4]
+    iterations = [20, 15, 10, 5]
     num_apps = len(iterations)
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
@@ -117,6 +117,7 @@ def main():
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
         print(f"Total pulling time: {total_pulling_time} seconds")
         print(f"Total execution time: {end_time - start_time} seconds")
+        print(f"Cache stats: {cache.get_image_stats()}")
 
 if __name__ == "__main__":
     main()
