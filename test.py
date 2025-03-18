@@ -57,7 +57,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         execution_time += end_time - start_time
         cache.record_stop(image_name, container_name)
        
-        time.sleep(0.2)
+        time.sleep(0.4)
 
     with total_cache_miss_lock:
         global total_cache_miss
@@ -76,7 +76,7 @@ def main():
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
-    iterations = [3, 10, 15]
+    iterations = [4, 10, 15]
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
 
