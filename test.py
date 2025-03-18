@@ -57,7 +57,7 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         execution_time += end_time - start_time
         cache.record_stop(image_name, container_name)
        
-        time.sleep(0.4)
+        time.sleep(0.2)
 
     with total_cache_miss_lock:
         global total_cache_miss
