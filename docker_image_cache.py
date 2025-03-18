@@ -103,31 +103,31 @@ class DockerImageCache:
             if len(containers) == 0
         ]
 
-    def _count_recent_usage(self, image_id: str) -> int:
+    def _get_recent_time_interval(self, image_id: str) -> float:
         """
-        Count how many times an image was used within the time window.
+        Get the time interval from latest usage of an image to now.
 
         Args:
             image_id: The ID of the Docker image
 
         Returns:
-            The number of times the image was used within the time window
+            The time interval from latest usage of the image to now
         """
         if image_id not in self.image_usage_history:
-            return 0
+            return float('inf')
 
         current_time = time.time()
         cutoff_time = current_time - self.time_window
 
-        # Count usages that occurred within the time window
-        recent_usages = sum(
-            1 for (start_time, _) in self.image_usage_history[image_id]
+        # Get the latest usage time of the image
+        min_time_interval = min(
+            end_time - current_time for (start_time, end_time) in self.image_usage_history[image_id]
             if start_time >= cutoff_time
         )
 
-        return recent_usages
+        return min_time_interval
 
-    def _get_total_usage_time(self, image_id: str) -> float:
+    def _count_recent_usage_time(self, image_id: str) -> float:
         """
         Get the total time an image has been used within the time window.
 
@@ -187,19 +187,19 @@ class DockerImageCache:
             active_policy = self.policy
 
             if active_policy == EvictionPolicy.LEAST_FREQUENTLY_USED:
-                # Find the image with the least usage in the time window
-                least_used_image = min(
+                # Find the image with the least recent usage
+                least_recent_image = max(
                     unused_images,
-                    key=lambda x: self._count_recent_usage(x)
+                    key=lambda x: self._get_recent_time_interval(x)
                 )
-                self.image_containers.pop(least_used_image)
+                self.image_containers.pop(least_recent_image)
                 self._record_usage(image_id, container_id)
-                return least_used_image
+                return least_recent_image
             elif active_policy == EvictionPolicy.LEAST_TOTAL_TIME_USED:
                 # Find the image with the least total usage time
                 least_time_used_image = min(
                     unused_images,
-                    key=lambda x: self._get_total_usage_time(x)
+                    key=lambda x: self._count_recent_usage_time(x)
                 )
                 self.image_containers.pop(least_time_used_image)
                 self._record_usage(image_id, container_id)

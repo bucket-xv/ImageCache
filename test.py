@@ -72,7 +72,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", "-i", type=str, default="master")
     parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
+    parser.add_argument("--time_window", "-t", type=int, required=False, default=30)
     args = parser.parse_args()
     registry_ip = args.ip
     num_apps = 3
