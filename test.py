@@ -4,10 +4,13 @@ import threading
 import time
 import argparse
 import os
+import math
+import pandas as pd
+
+global_lock = threading.Lock()
 total_cache_miss = 0
-total_cache_miss_lock = threading.Lock()
 total_pulling_time = 0
-total_pulling_time_lock = threading.Lock()
+pandas_table = pd.DataFrame()
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,16 +60,15 @@ def thread_func(cache, folder_to_zip, image_name, container_name, iterations, ve
         execution_time += end_time - start_time
         cache.record_stop(image_name, container_name)
        
-        time.sleep(0.2)
+        time.sleep(math.sqrt(execution_time))
 
-    with total_cache_miss_lock:
+    with global_lock:
         global total_cache_miss
         total_cache_miss += cache_miss
-    with total_pulling_time_lock:
         global total_pulling_time
         total_pulling_time += pulling_time
-
-    print(f"Average (cache miss rate, startup time, execution time) for {container_name}: {(cache_miss / iterations):.3f}, {(pulling_time / iterations):.3f}, {(execution_time / iterations):.3f}")
+        global pandas_table
+        pandas_table.loc[container_name] = [cache_miss/iterations, pulling_time/iterations, execution_time/iterations]
 
 def main():
     parser = argparse.ArgumentParser()
@@ -75,7 +77,7 @@ def main():
     parser.add_argument("--time_window", "-t", type=int, required=False, default=60)
     args = parser.parse_args()
     registry_ip = args.ip
-    iterations = [20, 15, 10, 5]
+    iterations = [10, 8, 6, 3]
     num_apps = len(iterations)
     total_iterations = sum(iterations)
     policies = [EvictionPolicy.LEAST_FREQUENTLY_USED, EvictionPolicy.LEAST_TOTAL_TIME_USED]
@@ -86,8 +88,11 @@ def main():
         
         global total_cache_miss
         global total_pulling_time
+        global pandas_table
         total_cache_miss = 0
         total_pulling_time = 0
+        columns = ["Cache Miss Rate", "Startup Time (s)", "Execution Time (s)"]
+        pandas_table = pd.DataFrame(columns=columns)
         # Clean up the images
         for i in range(num_apps):
             subprocess.run(f"docker rmi {registry_ip}:5000/image-cache-app{i+1}:latest", shell=True, capture_output=not args.verbose, text=True)
@@ -114,10 +119,12 @@ def main():
         end_time = time.time()
 
         print(f"{policy} summary:")
+        pandas_table = pandas_table.sort_index()
+        print(pandas_table)
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
         print(f"Total pulling time: {total_pulling_time} seconds")
         print(f"Total execution time: {end_time - start_time} seconds")
-        print(f"Cache stats: {cache.get_image_stats()}")
+        print("--------------------------------")
 
 if __name__ == "__main__":
     main()

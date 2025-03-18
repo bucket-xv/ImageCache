@@ -117,12 +117,10 @@ class DockerImageCache:
             return float('inf')
 
         current_time = time.time()
-        cutoff_time = current_time - self.time_window
 
         # Get the latest usage time of the image
         min_time_interval = min(
-            end_time - current_time for (start_time, end_time) in self.image_usage_history[image_id]
-            if start_time >= cutoff_time
+            current_time - start_time for (start_time, end_time) in self.image_usage_history[image_id]
         )
 
         return min_time_interval
