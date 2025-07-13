@@ -122,8 +122,6 @@ def main():
         pandas_table = pandas_table.sort_index()
         print(pandas_table)
         print(f"Total cache miss / total iterations: {total_cache_miss} / {total_iterations}")
-        print(f"Total pulling time: {total_pulling_time} seconds")
-        print(f"Total execution time: {end_time - start_time} seconds")
         print("--------------------------------")
 
 if __name__ == "__main__":
